@@ -1,0 +1,47 @@
+node_modules/
+out/
+dist/
+release/
+coverage/
+test-results/
+playwright-report/
+artifacts/
+
+# Runtime output and local state
+*.log
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.bak
+*.tsbuildinfo
+.env
+.env.*
+.mcp.json
+
+# Build artifacts and packages
+*.exe
+*.zip
+
+# Key material and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Internal working notes
+FIRST-RUN-REPORT.md
+SESSION-HANDOFF.md
+docs/COMPLETE-PROJECT-AUDIT.md
+docs/DEEPSEEK-HANDOFF.md
+docs/STAGE-2-FUNCTIONAL-VALIDATION.md
+docs/EXECUTION-READINESS.md
+
+# Editor / OS noise
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.swp
+*~
