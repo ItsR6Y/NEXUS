@@ -1,0 +1,184 @@
+name: Release
+
+# Tags only: pushing to main never publishes a release.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build and publish Windows x64 release
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      CI: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag against package.json version
+        shell: pwsh
+        run: |
+          $tag = "$env:GITHUB_REF_NAME"
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            Write-Error "Tag '$tag' is not semver v*.*.*"
+            exit 1
+          }
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          if ($tag -ne "v$($pkg.version)") {
+            Write-Error "Tag '$tag' does not match package.json version '$($pkg.version)'"
+            exit 1
+          }
+          Write-Output "Tag $tag matches package version $($pkg.version)"
+
+      - name: Set up Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and renderer tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Secret scan
+        run: npm run scan-secrets
+
+      - name: Build
+        run: npm run build
+
+      - name: Package (NSIS installer + archive)
+        run: npm run package
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Verify packaged artifacts
+        run: node scripts/verify-package.mjs
+
+      - name: Read Electron fuses back from the packaged executable
+        shell: pwsh
+        run: npx --no-install @electron/fuses read --app "release/win-unpacked/NEXUS Terminal.exe"
+
+      - name: Generate SHA-256 checksums
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem release -File | Where-Object { $_.Extension -in '.exe', '.zip' }
+          $lines = foreach ($f in $files) {
+            $h = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
+            "$h  $($f.Name)"
+          }
+          $lines | Set-Content -Encoding ascii release/SHA256SUMS.txt
+          Get-Content release/SHA256SUMS.txt
+
+      # Optional: enable Authenticode signing by adding the three secrets below.
+      # The step is skipped when they are absent, so unsigned releases keep working.
+      - name: Sign installer (optional)
+        if: ${{ env.WINDOWS_CERTIFICATE_BASE64 != '' }}
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'cert.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          $ts = if ($env:WINDOWS_TIMESTAMP_URL) { $env:WINDOWS_TIMESTAMP_URL } else { 'http://timestamp.digicert.com' }
+          $files = @(
+            'release/NEXUS-Terminal-Setup.exe',
+            'release/win-unpacked/NEXUS Terminal.exe'
+          )
+          foreach ($f in $files) {
+            if (Test-Path $f) {
+              & signtool.exe sign /fd SHA256 /f $pfx /p $env:WINDOWS_CERTIFICATE_PASSWORD /tr $ts /td SHA256 $f
+              if ($LASTEXITCODE -ne 0) { Write-Error "Signing failed for $f"; exit 1 }
+            }
+          }
+          Remove-Item $pfx -Force
+
+      - name: Recompute checksums after signing
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem release -File | Where-Object { $_.Extension -in '.exe', '.zip' }
+          $lines = foreach ($f in $files) {
+            $h = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
+            "$h  $($f.Name)"
+          }
+          $lines | Set-Content -Encoding ascii release/SHA256SUMS.txt
+          Get-Content release/SHA256SUMS.txt
+
+      - name: Write release notes
+        shell: pwsh
+        run: |
+          $version = "$env:GITHUB_REF_NAME"
+          $sums = Get-Content release/SHA256SUMS.txt -Raw
+          $notes = @"
+          # NEXUS Terminal $version
+
+          A security-focused Windows SSH terminal with native command authorization, strict
+          host-key verification, and a restricted Claude Code MCP integration.
+
+          ## Downloads
+
+          | File | Purpose |
+          | --- | --- |
+          | ``NEXUS-Terminal-Setup.exe`` | Per-user Windows 11 x64 installer (no administrator rights required) |
+          | ``NEXUS-Terminal-$($version.TrimStart('v'))-windows-x64-archive.zip`` | Unpacked application directory; run ``NEXUS Terminal.exe`` from the extracted folder |
+
+          ## Verify your download
+
+          ````
+          $sums
+          ````
+
+          Compare with PowerShell: ``Get-FileHash .\NEXUS-Terminal-Setup.exe -Algorithm SHA256``.
+
+          ## Installation notes
+
+          - Windows 11 x64. No Node.js, npm, Python, compilers or internet access are required.
+          - This release is **not code-signed**, so Windows SmartScreen may show a warning for a
+            new, low-reputation download. Verify the SHA-256 above before running it.
+          - Uninstalling keeps your data in ``%APPDATA%\NEXUS`` (database, settings, logs).
+            Delete that folder manually only if you intend to remove everything.
+
+          ## Changes
+
+          See the commit history for the full change list.
+          "@
+          $notes | Set-Content -Encoding utf8 release/RELEASE_NOTES.md
+          Get-Content release/RELEASE_NOTES.md -TotalCount 12
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "$env:GITHUB_REF_NAME"
+          $assets = @(
+            'release/NEXUS-Terminal-Setup.exe',
+            'release/SHA256SUMS.txt'
+          )
+          Get-ChildItem release -Filter 'NEXUS-Terminal-*-windows-x64-archive.zip' -File |
+            ForEach-Object { $assets += $_.FullName }
+          foreach ($a in $assets) { if (-not (Test-Path $a)) { Write-Error "Missing asset $a"; exit 1 } }
+          gh release create $tag --title "NEXUS Terminal $tag" --notes-file release/RELEASE_NOTES.md @assets

@@ -1,0 +1,140 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@xterm/xterm/css/xterm.css";
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel2: var(--panel2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accentfg: var(--accentfg);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-crit: var(--crit);
+  --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, Consolas, monospace;
+}
+
+/* Nexus Obsidian (Default) */
+:root, [data-theme="nexus-dark"] {
+  --bg: #0f131c;
+  --lowest: #0a0e16;
+  --panel: #181c24;
+  --panel2: #1c2028;
+  --panel3: #262a33;
+  --line: rgba(255, 255, 255, 0.08);
+  --fg: #dfe2ee;
+  --muted: #8c909f;
+  --accent: #4d8eff;
+  --accent-pill: #007aff;
+  --accentfg: #ffffff;
+  --ok: #4edea3;
+  --warn: #f59e0b;
+  --bad: #f97316;
+  --crit: #ef4444;
+  --term-bg: #0a0e16;
+  --sidebar-bg: rgba(13, 17, 23, 0.85);
+  --footer-bg: rgba(10, 14, 22, 0.85);
+}
+
+[data-theme="midnight"] {
+  --bg: #05070d;
+  --lowest: #03050a;
+  --panel: #0b1020;
+  --panel2: #111933;
+  --panel3: #182347;
+  --line: rgba(165, 188, 255, 0.12);
+  --fg: #e8ecff;
+  --muted: #9aa6d1;
+  --accent: #6366f1;
+  --accent-pill: #4f46e5;
+  --accentfg: #ffffff;
+  --ok: #59d9a0;
+  --warn: #ffc765;
+  --bad: #fb923c;
+  --crit: #ff5fa0;
+  --term-bg: #03050a;
+  --sidebar-bg: rgba(7, 11, 24, 0.88);
+  --footer-bg: rgba(5, 8, 18, 0.88);
+}
+
+[data-theme="matrix"] {
+  --bg: #060a07;
+  --lowest: #030604;
+  --panel: #0b120d;
+  --panel2: #101b13;
+  --panel3: #16261b;
+  --line: rgba(61, 255, 127, 0.14);
+  --fg: #d6f5dc;
+  --muted: #8db89a;
+  --accent: #3dff7f;
+  --accent-pill: #00a572;
+  --accentfg: #03130a;
+  --ok: #3dff7f;
+  --warn: #e5d34a;
+  --bad: #ff7a6b;
+  --crit: #ff4d7a;
+  --term-bg: #030604;
+  --sidebar-bg: rgba(6, 12, 8, 0.88);
+  --footer-bg: rgba(4, 9, 6, 0.88);
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  margin: 0;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.obsidian-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 4px 20px rgba(0, 0, 0, 0.22);
+}
+
+.obsidian-modal {
+  background: var(--panel2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+    0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+.xterm { padding: 10px; height: 100%; }
+.xterm-viewport { background: var(--term-bg) !important; }

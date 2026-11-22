@@ -15,13 +15,8 @@ artifacts/
 *.sqlite
 *.bak
 *.tsbuildinfo
-.env
-.env.*
+.env*
 .mcp.json
-
-# Build artifacts and packages
-*.exe
-*.zip
 
 # Key material and certificates
 *.pem
@@ -29,7 +24,7 @@ artifacts/
 *.p12
 *.pfx
 
-# Internal working notes
+# Internal working notes kept on disk but not part of the public repository
 FIRST-RUN-REPORT.md
 SESSION-HANDOFF.md
 docs/COMPLETE-PROJECT-AUDIT.md
@@ -38,7 +33,6 @@ docs/STAGE-2-FUNCTIONAL-VALIDATION.md
 docs/EXECUTION-READINESS.md
 
 # Editor / OS noise
-.vscode/
 .DS_Store
 Thumbs.db
 desktop.ini

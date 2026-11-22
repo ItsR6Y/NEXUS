@@ -1,0 +1,92 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: build and test only, no release permissions.
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and verify (windows-latest, x64)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and renderer tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Secret scan
+        run: npm run scan-secrets
+
+      - name: Build
+        run: npm run build
+
+      - name: Package (NSIS installer + archive)
+        run: npm run package
+        env:
+          # No signing certificate is configured for this build: the installer is intentionally
+          # unsigned. Signing is wired up in release.yml as an optional, secret-gated step.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Verify packaged artifacts
+        run: node scripts/verify-package.mjs
+
+      - name: Read Electron fuses back from the packaged executable
+        shell: pwsh
+        run: npx --no-install @electron/fuses read --app "release/win-unpacked/NEXUS Terminal.exe"
+
+      - name: Generate checksums
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem release -Filter *.exe -File
+          $files += Get-ChildItem release -Filter *.zip -File
+          $lines = foreach ($f in $files) {
+            $h = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
+            "$h  $($f.Name)"
+          }
+          $lines | Set-Content -Encoding ascii release/SHA256SUMS.txt
+          Get-Content release/SHA256SUMS.txt
+
+      - name: Upload installer and archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-terminal-windows-x64
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            release/NEXUS-Terminal-Setup.exe
+            release/NEXUS-Terminal-*-windows-x64-archive.zip
+            release/SHA256SUMS.txt

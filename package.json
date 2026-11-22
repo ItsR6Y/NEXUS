@@ -1,0 +1,132 @@
+{
+  "name": "nexus-terminal",
+  "version": "1.0.0",
+  "description": "NEXUS Terminal — hardened Electron SSH terminal with native authorization and 5-tool MCP bridge",
+  "author": "Ray",
+  "license": "MIT",
+  "private": true,
+  "main": "out/main/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build && node scripts/build-mcp.mjs",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "npm run build && playwright test",
+    "scan-secrets": "node scripts/scan-secrets.mjs",
+    "verify:package": "node scripts/verify-package.mjs",
+    "package": "npm run build && electron-builder --win nsis zip --publish never",
+    "package:dir": "npm run build && electron-builder --dir --publish never",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run scan-secrets",
+    "zip": "node scripts/package-zip.mjs",
+    "verify:zip": "node scripts/verify-zip.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@napi-rs/keyring": "^1.2.0",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/addon-search": "0.16.0",
+    "@xterm/xterm": "6.0.0",
+    "lucide-react": "1.74.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "ssh2": "1.17.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@electron/fuses": "2.1.3",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/ssh2": "1.15.6",
+    "@vitejs/plugin-react": "6.3.0",
+    "electron": "45.3.4",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.15.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "jsdom": "^31.0.1",
+    "tailwindcss": "4.3.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  },
+  "build": {
+    "appId": "com.nexus.terminal",
+    "productName": "NEXUS Terminal",
+    "copyright": "Copyright © 2026 Ray",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**",
+      "!out/mcp/**",
+      "package.json",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "extraResources": [
+      {
+        "from": "out/mcp/nexus-mcp.mjs",
+        "to": "mcp/nexus-mcp.mjs"
+      }
+    ],
+    "afterPack": "scripts/after-pack.cjs",
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "NEXUS-Terminal-${version}-windows-${arch}-archive.${ext}"
+    },
+    "nsis": {
+      "artifactName": "NEXUS-Terminal-Setup.exe",
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NEXUS Terminal",
+      "menuCategory": false,
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "differentialPackage": false
+    },
+    "npmRebuild": false
+  }
+}

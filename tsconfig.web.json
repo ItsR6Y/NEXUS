@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/renderer",
+    "tests/renderer",
+    "src/shared/ipc.ts",
+    "src/shared/events.ts",
+    "src/shared/types.ts",
+    "src/shared/policy-types.ts",
+    "src/shared/api.ts"
+  ]
+}
